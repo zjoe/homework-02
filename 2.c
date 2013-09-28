@@ -15,8 +15,8 @@ void Work(int n,int m,int a[][ARRAY],int count[]);
 int Rectangle(int n,int m,int LimN,int LimM,int a[][ARRAY]);
 int MonoList(int x[],int len,int Lim);
 int InterConnect(int n,int m,int a[][ARRAY]);
-int Partition(int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY],int value[BLOCK]);
-int DFS(int i,int j,int num,int n,int m,int fixed[][ARRAY],int part[][ARRAY]);
+int Partition(int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY],int value[]);
+int DFS(int i,int j,int num,int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY]);
 void SPFA(int n,int m,int bx,int by,int a[][ARRAY],int fixed[][ARRAY],int dis[][ARRAY],int prex[][ARRAY],int prey[][ARRAY]);
 void GetContour(int n,int m,int fixed[][ARRAY],int part[][ARRAY],int conx[][SURROUND],int cony[][SURROUND],int ncon[BLOCK]);
 void TestOut(int a[][ARRAY],int l1,int l2);
@@ -38,7 +38,7 @@ void ArgCheck(int argc, char * argv[],int count[])
 	count[0]=count[1]=count[2]=0;
 	for(i=1;i<argc-1;i++)
 	{
-		if(argv[i][0]!='\\' || (argv[i][1]!='a' && argv[i][1]!='h' && argv[i][1]!='v') || argv[i][2]!='\0')
+		if(argv[i][0]!='-' || (argv[i][1]!='a' && argv[i][1]!='h' && argv[i][1]!='v') || argv[i][2]!='\0')
 			Error("invalid argument");
 		else if(argv[i][1]=='a')
 			count[0]++;
@@ -231,7 +231,7 @@ void TestOut(int a[][ARRAY],int l1,int l2)
 }
 int InterConnect(int n,int m,int a[][ARRAY])
 {
-	int i,j,k,num,max,bx,by,ex,ey,k1,k2,nowx,nowy,temp,ans;
+	int i,j,k,num,max,bx,by,ex,ey,k1,k2,d,nowx,nowy,temp,ans;
 	int dis[ARRAY][ARRAY],fixed[ARRAY][ARRAY],part[ARRAY][ARRAY];
 	int value[BLOCK],prex[ARRAY][ARRAY],prey[ARRAY][ARRAY];
 	int conx[BLOCK][SURROUND],cony[BLOCK][SURROUND],ncon[BLOCK];
@@ -245,7 +245,6 @@ int InterConnect(int n,int m,int a[][ARRAY])
 	while(1)
 	{
 		num=Partition(n,m,a,fixed,part,value);
-		
 		TestOut(part,n,m);
 		TestOut(fixed,n,m);
 		GetContour(n,m,fixed,part,conx,cony,ncon);
@@ -258,7 +257,9 @@ int InterConnect(int n,int m,int a[][ARRAY])
 				SPFA(n,m,conx[i][k1],cony[i][k1],a,fixed,dis,prex,prey);
 				for(j=i+1;j<=num;j++)
 					for(k2=1;k2<=ncon[j];k2++)
-						if(dis[conx[j][k2]][cony[j][k2]]-a[conx[j][k2]][cony[j][k2]]>max)
+                    {
+                        d=dis[conx[j][k2]][cony[j][k2]]-a[conx[j][k2]][cony[j][k2]];
+						if(d>max && value[part[conx[i][k1]][cony[i][k1]]]+d>=0 && value[part[conx[j][k2]][cony[j][k2]]]+d>=0)
 						{
 							max=dis[conx[j][k2]][cony[j][k2]]-a[conx[j][k2]][cony[j][k2]];
 							bx=conx[i][k1];
@@ -266,11 +267,12 @@ int InterConnect(int n,int m,int a[][ARRAY])
 							ex=conx[j][k2];
 							ey=cony[j][k2];
 						}
+                    }
 			}
 
 		if(max==-MAXN)break;
 
-		printf("%d %d %d %d %d\n",bx,by,ex,ey,max);
+		printf("%d %d %d %d %d %d %d\n",bx,by,ex,ey,max,value[part[bx][by]],value[part[ex][ey]]);
 		SPFA(n,m,bx,by,a,fixed,dis,prex,prey);
 		nowx=ex;
 		nowy=ey;
@@ -282,8 +284,8 @@ int InterConnect(int n,int m,int a[][ARRAY])
 			nowy=prey[temp][nowy];
 		}
 	}
-	ans=0;
-	for(i=1;i<=n;i++)for(j=1;j<=m;j++)if(fixed[i][j])ans+=a[i][j];
+	ans=-MAXN;
+    for(i=1;i<=num;i++)if(value[i]>ans)ans=value[i];
 	return ans;
 }
 void SPFA(int n,int m,int bx,int by,int a[][ARRAY],int fixed[][ARRAY],int dis[][ARRAY],int prex[][ARRAY],int prey[][ARRAY])
@@ -360,7 +362,7 @@ void GetContour(int n,int m,int fixed[][ARRAY],int part[][ARRAY],int conx[100][1
 				}
 			}
 }
-int Partition(int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY],int value[30])
+int Partition(int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY],int value[])
 {
 	int i,j,num;
 	for(i=1;i<=n;i++)
@@ -372,18 +374,18 @@ int Partition(int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY],in
 			if(fixed[i][j]==1 && part[i][j]==0)
 			{
 				num++;
-				value[num]=DFS(i,j,num,n,m,fixed,part);
+				value[num]=DFS(i,j,num,n,m,a,fixed,part);
 			}
 	return num;
 }
-int DFS(int i,int j,int num,int n,int m,int fixed[][ARRAY],int part[][ARRAY])
+int DFS(int i,int j,int num,int n,int m,int a[][ARRAY],int fixed[][ARRAY],int part[][ARRAY])
 {
 	if(part[i][j]!=0 || fixed[i][j]==0)return 0;
 	int sum=0;
 	part[i][j]=num;
-	if(i-1>=1)sum+=DFS(i-1,j,num,n,m,fixed,part);
-	if(i+1<=n)sum+=DFS(i+1,j,num,n,m,fixed,part);
-	if(j-1>=1)sum+=DFS(i,j-1,num,n,m,fixed,part);
-	if(j+1<=m)sum+=DFS(i,j+1,num,n,m,fixed,part);
-	return sum;
+	if(i-1>=1)sum+=DFS(i-1,j,num,n,m,a,fixed,part);
+	if(i+1<=n)sum+=DFS(i+1,j,num,n,m,a,fixed,part);
+	if(j-1>=1)sum+=DFS(i,j-1,num,n,m,a,fixed,part);
+	if(j+1<=m)sum+=DFS(i,j+1,num,n,m,a,fixed,part);
+	return sum+a[i][j];
 }
